@@ -6,10 +6,9 @@ import { CardType, Faction } from "../../utils/types";
 import Card from "../card";
 
 export default class Deck {
-  private cards: Card[];
-  private faction: Faction;
-
-  private leader: Card;
+  public readonly cards: Card[];
+  public readonly faction: Faction;
+  public readonly leader: Card;
 
   constructor(cards: Card[], faction: Faction, leader: Card) {
     this.cards = cards;
@@ -34,20 +33,16 @@ export default class Deck {
   }
 
   public getTotalCardStrength(): number {
-    return this.cards.reduce((acc, card) => acc + card.getBaseStrength(), 0);
+    return this.cards.reduce((acc, card) => acc + card.baseStrength, 0);
   }
 
   public getNumberOfCardsByType(type: CardType): number {
-    return this.cards.filter((card) => card.getType() === type).length;
-  }
-
-  public getLeader(): Card {
-    return this.leader;
+    return this.cards.filter((card) => card.type === type).length;
   }
 
   private validateLeader(): void {
-    const leaderType = this.leader.getType();
-    const leaderFaction = this.leader.getFaction();
+    const leaderType = this.leader.type;
+    const leaderFaction = this.leader.faction;
 
     if (leaderType !== CardType.LEADER) {
       throw new Error("Invalid leader type");
@@ -72,10 +67,10 @@ export default class Deck {
   private validateDeckFaction(): void {
     this.cards.forEach((card) => {
       if (
-        card.getFaction() !== Faction.NEUTRAL &&
-        card.getFaction() !== this.faction
+        card.faction !== Faction.NEUTRAL &&
+        card.faction !== this.faction
       ) {
-        throw new Error(`Invalid faction for card ${card.getName()}`);
+        throw new Error(`Invalid faction for card ${card.name}`);
       }
     });
   }

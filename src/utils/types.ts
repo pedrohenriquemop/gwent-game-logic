@@ -24,4 +24,15 @@ export enum Faction {
   SCOIATAEL = "scoiatael",
   MONSTERS = "monsters",
   NEUTRAL = "neutral",
-}
+} 
+
+export interface Card {
+  readonly id: number;
+  readonly name: string;
+  readonly flavourText: string;
+  readonly baseStrength: number;
+  readonly faction: Faction;
+  readonly type: CardType;
+  readonly allowedRows: BoardRow[],
+  readonly specialAbilities?: string[], // TODO: create a dedicated type for the different special abilities
+};

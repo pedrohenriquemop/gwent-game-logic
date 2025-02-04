@@ -1,52 +1,29 @@
-import { BoardRow, CardType, Faction } from "../../utils/types";
+import { BoardRow, CardType, Faction, Card as CardInterface } from "../../utils/types";
 
-export default class Card {
-  private id: number;
-  private name: string;
-  private flavorText: string;
-  private baseStrength: number;
-  private faction: Faction;
-  private allowedRows: BoardRow[];
-  private specialAbility: string;
-  private type: CardType;
+export default class Card implements CardInterface {
+  public readonly id
+  public readonly name
+  public readonly flavourText
+  public readonly baseStrength
+  public readonly faction
+  public readonly allowedRows
+  public readonly specialAbilities
+  public readonly type
 
   private resultingStrength: number;
 
   constructor(
-    id: number,
-    name: string,
-    flavorText: string,
-    baseStrength: number,
-    faction: Faction,
-    allowedRows: BoardRow[],
-    specialAbility: string,
-    type: CardType,
+    card: CardInterface
   ) {
-    this.id = id;
-    this.name = name;
-    this.flavorText = flavorText;
-    this.baseStrength = baseStrength;
-    this.faction = faction;
-    this.allowedRows = allowedRows;
-    this.specialAbility = specialAbility;
-    this.type = type;
+    this.id = card.id;
+    this.name = card.name;
+    this.flavourText = card.flavourText;
+    this.baseStrength = card.baseStrength;
+    this.faction = card.faction;
+    this.allowedRows = card.allowedRows;
+    this.specialAbilities = card.specialAbilities;
+    this.type = card.type;
 
-    this.resultingStrength = baseStrength;
-  }
-
-  public getType(): CardType {
-    return this.type;
-  }
-
-  public getName(): string {
-    return this.name;
-  }
-
-  public getBaseStrength(): number {
-    return this.baseStrength;
-  }
-
-  public getFaction(): Faction {
-    return this.faction;
+    this.resultingStrength = card.baseStrength;
   }
 }
