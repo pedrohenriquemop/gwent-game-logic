@@ -2,10 +2,10 @@ import { PlayerRole } from "../../utils/types";
 import Deck from "../deck";
 
 export default class Player {
-  public readonly id: string;
-  public readonly name: string;
-  public readonly role: PlayerRole;
-  public readonly deck: Deck;
+  readonly id: string;
+  readonly name: string;
+  readonly role: PlayerRole;
+  readonly deck: Deck;
 
   constructor(id: string, name: string, role: PlayerRole, deck: Deck) {
     this.id = id;

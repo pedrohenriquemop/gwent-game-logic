@@ -1,14 +1,14 @@
 // import { Card as CardInterface } from "../../utils/types";
 
 // export default class Card implements CardInterface {
-//   public readonly id;
-//   public readonly name;
-//   public readonly flavourText;
-//   public readonly baseStrength;
-//   public readonly faction;
-//   public readonly allowedRows;
-//   public readonly specialAbilities;
-//   public readonly type;
+//   readonly id;
+//   readonly name;
+//   readonly flavourText;
+//   readonly baseStrength;
+//   readonly faction;
+//   readonly allowedRows;
+//   readonly specialAbilities;
+//   readonly type;
 
 //   private resultingStrength: number;
 

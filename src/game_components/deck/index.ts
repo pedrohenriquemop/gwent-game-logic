@@ -6,9 +6,9 @@ import { CardType, Faction } from "../../utils/types";
 import Card from "../card";
 
 export default class Deck {
-  public readonly cards: Card[];
-  public readonly faction: Faction;
-  public readonly leader: Card;
+  readonly cards: Card[];
+  readonly faction: Faction;
+  readonly leader: Card;
 
   constructor(cards: Card[], faction: Faction, leader: Card) {
     this.cards = cards;
@@ -16,27 +16,27 @@ export default class Deck {
     this.leader = leader;
   }
 
-  public getTotalNumberOfCards(): number {
+  getTotalNumberOfCards(): number {
     return this.cards.length;
   }
 
-  public getNumberOfUnitCards(): number {
+  getNumberOfUnitCards(): number {
     return this.getNumberOfCardsByType(CardType.UNIT);
   }
 
-  public getNumberOfSpecialCards(): number {
+  getNumberOfSpecialCards(): number {
     return this.getNumberOfCardsByType(CardType.SPECIAL);
   }
 
-  public getnumberOfHeroCards(): number {
+  getnumberOfHeroCards(): number {
     return this.getNumberOfCardsByType(CardType.HERO);
   }
 
-  public getTotalCardStrength(): number {
+  getTotalCardStrength(): number {
     return this.cards.reduce((acc, card) => acc + card.baseStrength, 0);
   }
 
-  public getNumberOfCardsByType(type: CardType): number {
+  getNumberOfCardsByType(type: CardType): number {
     return this.cards.filter((card) => card.type === type).length;
   }
 
@@ -66,16 +66,13 @@ export default class Deck {
 
   private validateDeckFaction(): void {
     this.cards.forEach((card) => {
-      if (
-        card.faction !== Faction.NEUTRAL &&
-        card.faction !== this.faction
-      ) {
+      if (card.faction !== Faction.NEUTRAL && card.faction !== this.faction) {
         throw new Error(`Invalid faction for card ${card.name}`);
       }
     });
   }
 
-  public validateDeck(): Error | null {
+  validateDeck(): Error | null {
     try {
       this.validateLeader();
       this.validateDeckSize();

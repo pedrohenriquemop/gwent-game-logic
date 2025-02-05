@@ -19,7 +19,7 @@ type BoardSide = {
 };
 
 export default class Board {
-  public readonly sides: [BoardSide, BoardSide];
+  readonly sides: [BoardSide, BoardSide];
 
   constructor() {
     this.sides = [
@@ -72,29 +72,21 @@ export default class Board {
     ];
   }
 
-  public setWeatherEffect(
-    effect: WeatherEffect,
-    side: number,
-    row: BoardRowType,
-  ) {
+  setWeatherEffect(effect: WeatherEffect, side: number, row: BoardRowType) {
     this.sides[side][row].weatherEffect = effect;
   }
 
-  public setUniqueEffect(
-    effect: UniqueRowEffect,
-    side: number,
-    row: BoardRowType,
-  ) {
+  setUniqueEffect(effect: UniqueRowEffect, side: number, row: BoardRowType) {
     this.sides[side][row].uniqueEffect = effect;
   }
 
-  public addCard(card: Card, side: number, row: BoardRowType) {
+  addCard(card: Card, side: number, row: BoardRowType) {
     const boardRow = this.sides[side][row];
     boardRow.cards.push(card);
     boardRow.totalStrength += card.calculatedStrength;
   }
 
-  public calculateRowTotalStrength(side: number, rowType: BoardRowType) {
+  calculateRowTotalStrength(side: number, rowType: BoardRowType) {
     const row = this.sides[side][rowType];
     let totalStrength = 0;
     row.cards.forEach((card) => {
@@ -103,7 +95,7 @@ export default class Board {
     return totalStrength;
   }
 
-  public calculateTotalStrength(side: number) {
+  calculateTotalStrength(side: number) {
     let totalStrength = 0;
     Object.values(BoardRowType).forEach((rowType) => {
       totalStrength += this.calculateRowTotalStrength(side, rowType);
