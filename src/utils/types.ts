@@ -4,7 +4,7 @@ export enum PlayerRole {
   SPECTATOR = "spectator",
 }
 
-export enum BoardRow {
+export enum BoardRowType {
   MELEE = "melee",
   RANGED = "ranged",
   SIEGE = "siege",
@@ -24,15 +24,34 @@ export enum Faction {
   SCOIATAEL = "scoiatael",
   MONSTERS = "monsters",
   NEUTRAL = "neutral",
-} 
+}
 
 export interface Card {
   readonly id: number;
   readonly name: string;
   readonly flavourText: string;
   readonly baseStrength: number;
+  calculatedStrength: number;
   readonly faction: Faction;
   readonly type: CardType;
-  readonly allowedRows: BoardRow[],
-  readonly specialAbilities?: string[], // TODO: create a dedicated type for the different special abilities
-};
+  readonly allowedRows: BoardRowType[];
+  readonly specialAbilities?: string[]; // TODO: create a dedicated type for the different special abilities
+}
+
+export enum WeatherEffect {
+  FROST = "frost",
+  FOG = "fog",
+  RAIN = "rain",
+}
+
+export enum UniqueRowEffect {
+  HORN = "horn",
+  MARDROEM = "mardroem",
+}
+
+export enum CardRowEffect {
+  HORN = "horn",
+  MARDROEM = "mardroem",
+  MORALE_BOOST = "morale_boost",
+  TIGHT_BOND = "tight_bond",
+}
