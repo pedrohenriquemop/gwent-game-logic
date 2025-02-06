@@ -1,7 +1,7 @@
 import {
   BoardRowType,
   Card,
-  CardRowEffect,
+  SpecialAbility,
   UniqueRowEffect,
   WeatherEffect,
 } from "../../utils/types";
@@ -11,7 +11,7 @@ type BoardRow = {
   totalStrength: number;
   weatherEffect: WeatherEffect | null;
   uniqueEffect: UniqueRowEffect | null;
-  cardEffects: CardRowEffect[] | null;
+  cardEffects: SpecialAbility[] | null;
 };
 
 type BoardSide = {
