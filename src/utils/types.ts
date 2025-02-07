@@ -12,9 +12,10 @@ export enum BoardRowType {
 
 export enum Faction {
   NORTHERN_REALMS = "northern_realms",
-  NILFGAARD = "nilfgaard",
+  NILFGAARDIAN_EMPIRE = "nilfgaardian_empire",
   SCOIATAEL = "scoiatael",
   MONSTERS = "monsters",
+  SKELLIGE = "skellige",
   NEUTRAL = "neutral",
 }
 
