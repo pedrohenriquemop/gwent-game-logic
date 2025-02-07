@@ -5,20 +5,13 @@ import { BoardRowType, Card } from "./types";
 const BASE_URL = "https://witcher.fandom.com";
 const GENERAL_URL = `${BASE_URL}/wiki/Gwent`;
 
-const titleToAllowedRows: Record<string, BoardRowType[]> = {
-  "Gwent agile cards": [BoardRowType.MELEE, BoardRowType.RANGED],
-  "Gwent close combat cards": [BoardRowType.MELEE],
-  "Gwent ranged combat cards": [BoardRowType.RANGED],
-  "Gwent siege cards": [BoardRowType.SIEGE],
-};
-
 /*
 TODO:
 [ ] Extract semanticId and flavourText
 [ ] Add isHiddenCard property for cards that only appears when other cards dies
 [ ] Add multiple cards with the same name
 [ ] Some cards got the special abilities wrong (specially leaders)
-[ ] allowedRows is not working
+[x] allowedRows is not working
 */
 
 async function scrapeGwentCards() {
@@ -60,7 +53,7 @@ async function scrapeGwentCards() {
 
     const factionCards: Omit<Card, "calculatedStrength" | "id">[] =
       await factionPage.evaluate(
-        ({ factionName, titleToAllowedRows }) => {
+        ({ factionName }) => {
           const rows = document.querySelectorAll(".fandom-table tbody tr");
           return Promise.all(
             Array.from(rows).map(async (row) => {
@@ -73,14 +66,21 @@ async function scrapeGwentCards() {
                 0;
               const faction = factionName.toUpperCase();
 
-              const allowedRows =
-                titleToAllowedRows[
-                  (
-                    row.querySelector(
-                      "td:nth-child(3) > a",
-                    ) as HTMLAnchorElement
-                  )?.title
-                ] || [];
+              const allowedRows = [];
+              const rowTitle =
+                (
+                  row.querySelector("td:nth-child(4) > a") as HTMLAnchorElement
+                )?.title?.toLowerCase() || "";
+
+              if (rowTitle.includes("agile"))
+                allowedRows.push(BoardRowType.MELEE, BoardRowType.RANGED);
+              if (rowTitle.includes("close"))
+                allowedRows.push(BoardRowType.MELEE);
+              if (rowTitle.includes("ranged"))
+                allowedRows.push(BoardRowType.RANGED);
+              if (rowTitle.includes("siege"))
+                allowedRows.push(BoardRowType.SIEGE);
+
               const specialAbilitiesText =
                 row
                   .querySelector("td:nth-child(6)")
@@ -128,7 +128,7 @@ async function scrapeGwentCards() {
             }),
           );
         },
-        { factionName, titleToAllowedRows },
+        { factionName },
       );
 
     cards.push(...factionCards);
