@@ -9,7 +9,8 @@ const GENERAL_URL = `${BASE_URL}/wiki/Gwent`;
 TODO:
 [x] Extract semanticId and flavourText
 [ ] Add isHiddenCard property for cards that only appears when other cards dies
-[ ] Add multiple cards with the same name
+[x] Add multiple cards with the same name
+[ ] Bug: some cards are not coming with semanticId
 [ ] Some cards got the special abilities wrong (specially leaders)
 [x] allowedRows is not working
 [ ] improve logging
@@ -17,6 +18,10 @@ TODO:
 
 function msToS(ms: number) {
   return (ms / 1000).toFixed(3);
+}
+
+function logNavigate(url: string) {
+  console.log(`🌐 Navigating to "${url}"`);
 }
 
 async function scrapeGwentCards() {
@@ -27,6 +32,7 @@ async function scrapeGwentCards() {
   });
   const page = await browser.newPage();
   await page.goto(GENERAL_URL, { waitUntil: "domcontentloaded" });
+  logNavigate(GENERAL_URL);
 
   const factionLinksTimeStart = Date.now();
   // extract the links containing each factions' cards
@@ -61,6 +67,7 @@ async function scrapeGwentCards() {
     await factionPage.goto(factionLink, {
       waitUntil: "domcontentloaded",
     });
+    logNavigate(factionLink);
 
     const [factionCards, cardLinks]: [
       Omit<Card, "calculatedStrength" | "id">[],
@@ -69,61 +76,67 @@ async function scrapeGwentCards() {
       async ({ factionName, BoardRowType }) => {
         const rows = document.querySelectorAll(".fandom-table tbody tr");
         const cardLinks: string[] = [];
-        const factionCards = await Promise.all(
-          Array.from(rows).map(async (row) => {
-            const name = row.querySelector("td:nth-child(2) > a")?.innerText;
-            const type = row
-              .querySelector("td:nth-child(3)")
-              ?.innerText.toUpperCase();
-            const baseStrength =
-              parseInt(row.querySelector("td:nth-child(5)")?.innerText, 10) ||
-              0;
-            const faction = factionName.toUpperCase();
+        const factionCards = Array.from(rows).flatMap((row) => {
+          const name = row.querySelector("td:nth-child(2) > a")?.innerText;
+          const type = row
+            .querySelector("td:nth-child(3)")
+            ?.innerText.toUpperCase();
+          const baseStrength =
+            parseInt(row.querySelector("td:nth-child(5)")?.innerText, 10) || 0;
+          const faction = factionName.toUpperCase();
 
-            const allowedRows = [];
-            const rowTitle =
-              (
-                row.querySelector("td:nth-child(4) > a") as HTMLAnchorElement
-              )?.title?.toLowerCase() || "";
+          const allowedRows = [];
+          const rowTitle =
+            (
+              row.querySelector("td:nth-child(4) > a") as HTMLAnchorElement
+            )?.title?.toLowerCase() || "";
 
-            if (rowTitle.includes("agile"))
-              allowedRows.push(BoardRowType.MELEE, BoardRowType.RANGED);
-            if (rowTitle.includes("close"))
-              allowedRows.push(BoardRowType.MELEE);
-            if (rowTitle.includes("ranged"))
-              allowedRows.push(BoardRowType.RANGED);
-            if (rowTitle.includes("siege"))
-              allowedRows.push(BoardRowType.SIEGE);
+          if (rowTitle.includes("agile"))
+            allowedRows.push(BoardRowType.MELEE, BoardRowType.RANGED);
+          if (rowTitle.includes("close")) allowedRows.push(BoardRowType.MELEE);
+          if (rowTitle.includes("ranged"))
+            allowedRows.push(BoardRowType.RANGED);
+          if (rowTitle.includes("siege")) allowedRows.push(BoardRowType.SIEGE);
 
-            const specialAbilitiesText =
-              row
-                .querySelector("td:nth-child(6)")
-                ?.innerText?.split(":")?.[0]
-                ?.trim()
-                ?.toUpperCase()
-                ?.replaceAll(" ", "_") || "";
-            const specialAbilities =
-              specialAbilitiesText && specialAbilitiesText !== "HERO"
-                ? [specialAbilitiesText]
-                : [];
+          const specialAbilitiesText =
+            row
+              .querySelector("td:nth-child(6)")
+              ?.innerText?.split(":")?.[0]
+              ?.trim()
+              ?.toUpperCase()
+              ?.replaceAll(" ", "_") || "";
+          const specialAbilities =
+            specialAbilitiesText && specialAbilitiesText !== "HERO"
+              ? [specialAbilitiesText]
+              : [];
 
-            const cardLink =
-              (row.querySelector("td:nth-child(2) > a") as HTMLAnchorElement)
-                ?.href || "";
-            cardLinks.push(cardLink);
+          const repetitions =
+            row
+              .querySelector("td:nth-child(7)")
+              ?.innerText.split("\n")
+              .reduce((acc: number, curr: string) => {
+                const number = curr.match(/\d/)?.[0];
+                if (number) return acc + Number(number);
 
-            return {
-              name,
-              baseStrength,
-              faction,
-              type,
-              allowedRows,
-              specialAbilities,
-              flavourText: "TODO",
-              semanticId: "TODO",
-            };
-          }),
-        );
+                return acc + 1;
+              }, 0) || 1;
+
+          const cardLink =
+            (row.querySelector("td:nth-child(2) > a") as HTMLAnchorElement)
+              ?.href || "";
+          cardLinks.push(...new Array(repetitions).fill(cardLink));
+
+          return new Array(repetitions).fill(null).map(() => ({
+            name,
+            baseStrength,
+            faction,
+            type,
+            allowedRows,
+            specialAbilities,
+            flavourText: "",
+            semanticId: "",
+          }));
+        });
 
         return [factionCards, cardLinks] as [
           Omit<Card, "calculatedStrength">[],
@@ -140,6 +153,7 @@ async function scrapeGwentCards() {
       await cardPage.goto(`${cardLink}`, {
         waitUntil: "domcontentloaded",
       });
+      logNavigate(cardLink);
 
       const [flavourText, semanticId] = await cardPage.evaluate(() => {
         const flavourText = document.querySelector(".pi-caption")?.innerText;
@@ -161,7 +175,9 @@ async function scrapeGwentCards() {
         flavourText,
       };
 
-      console.log(`☑️ Extracted card '${factionCards[index].name}'`);
+      console.log(
+        `☑️ Extracted card '${factionCards[index].name}' ('${factionCards[index].semanticId}')`,
+      );
     }
 
     cards.push(...factionCards);
