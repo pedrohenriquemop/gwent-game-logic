@@ -37,7 +37,7 @@ export interface Card {
   readonly faction: Faction;
   readonly type: CardType;
   readonly allowedRows: BoardRowType[];
-  readonly specialAbilities?: SpecialAbility[];
+  readonly specialAbilities?: (SpecialAbility | string)[];
   readonly isHiddenCard?: boolean;
 }
 
