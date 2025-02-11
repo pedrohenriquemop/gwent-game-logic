@@ -8,7 +8,7 @@ const GENERAL_URL = `${BASE_URL}/wiki/Gwent`;
 /*
 TODO:
 [x] Extract semanticId and flavourText
-[ ] Add isHiddenCard property for cards that only appears when other cards dies
+[x] Add isHiddenCard property for cards that only appears when other cards dies
 [x] Add multiple cards with the same name
 [x] Bug: some cards are not coming with semanticId
 [x] Bug: the very first card of each faction is empty
@@ -196,6 +196,11 @@ async function scrapeGwentCards() {
             specialAbilities: extractSpecialAbilities(rawCard.specialAbilities),
             flavourText: flavourText,
             semanticId: semanticId,
+            ...(!semanticId
+              ? {
+                  isHiddenCard: true,
+                }
+              : {}),
           };
         }),
       );
