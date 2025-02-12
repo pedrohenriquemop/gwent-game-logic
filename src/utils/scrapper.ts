@@ -12,8 +12,11 @@ TODO:
 [x] Add multiple cards with the same name
 [x] Bug: some cards are not coming with semanticId
 [x] Bug: the very first card of each faction is empty
-[ ] Some cards got the special abilities wrong (specially leaders)
+[x] Some cards got the special abilities wrong (specially leaders)
 [x] allowedRows is not working
+[ ] ids are restarting at every faction
+[ ] Cerys has a non-existing special ability
+[ ] some special abilities are uppercase, as if they were only the keys of the type
 [ ] improve logging
 */
 
@@ -43,17 +46,38 @@ function extractAllowedRows(rowTitle: string): BoardRowType[] {
 
 function extractSpecialAbilities(
   specialAbilitiesText: string,
+  cardName: string,
+  cardType: CardType,
 ): (SpecialAbility | string)[] {
   if (!specialAbilitiesText) return [];
+  if (cardType === CardType.LEADER) return [];
+  if (cardType === CardType.WEATHER) {
+    if (cardName.toLowerCase() === "clear weather")
+      return [SpecialAbility.CLEAR_WEATHER];
+    return [SpecialAbility.WEATHER];
+  }
+  if (cardName.toLowerCase() === "commander's horn")
+    return [SpecialAbility.HORN];
+  if (cardName.toLowerCase() === "decoy") return [SpecialAbility.DECOY];
 
-  const parsedText: SpecialAbility | string =
-    specialAbilitiesText
-      .split(":")?.[0]
-      ?.trim()
-      ?.toUpperCase()
-      ?.replaceAll(" ", "_") || "";
   const specialAbilities =
-    parsedText && parsedText !== "HERO" ? [parsedText] : [];
+    specialAbilitiesText?.split("\n")?.map((abilityText) => {
+      if (abilityText.includes("When this card is removed"))
+        return SpecialAbility.SUMMON_AVENGER;
+
+      let finalText =
+        abilityText
+          ?.split(":")?.[0]
+          ?.trim()
+          ?.toUpperCase()
+          ?.replaceAll(" ", "_")
+          ?.replaceAll("'", "") || "";
+
+      if (finalText.includes("HORN")) finalText = SpecialAbility.HORN;
+      if (finalText.includes("SCORCH")) finalText = SpecialAbility.SCORCH;
+
+      return finalText as SpecialAbility;
+    }) || [];
 
   return specialAbilities;
 }
@@ -190,10 +214,14 @@ async function scrapeGwentCards() {
             id: index,
             name: rawCard.name,
             baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
-            faction: factionName.toUpperCase() as Faction,
-            type: rawCard.type.toUpperCase() as CardType,
+            faction: Faction[factionName.toUpperCase() as keyof typeof Faction],
+            type: CardType[rawCard.type.toUpperCase() as keyof typeof CardType],
             allowedRows: extractAllowedRows(rawCard.allowedRows),
-            specialAbilities: extractSpecialAbilities(rawCard.specialAbilities),
+            specialAbilities: extractSpecialAbilities(
+              rawCard.specialAbilities,
+              rawCard.name,
+              CardType[rawCard.type.toUpperCase() as keyof typeof CardType],
+            ),
             flavourText: flavourText,
             semanticId: semanticId,
             ...(!semanticId

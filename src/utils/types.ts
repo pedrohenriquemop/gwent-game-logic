@@ -54,6 +54,8 @@ export enum SpecialAbility {
   MARDROEM = "mardroem",
   BERSERK = "berserk",
   SUMMON_AVENGER = "summon_avenger",
+  WEATHER = "weather",
+  CLEAR_WEATHER = "clear_weather",
 }
 
 export enum WeatherEffect {
