@@ -100,9 +100,10 @@ async function scrapeGwentCards() {
       const linkElement = row.querySelector("td > a") as HTMLAnchorElement;
       return {
         factionLink: linkElement ? linkElement.href : "",
-        factionName: row
-          .querySelector("td:nth-child(2) > a")
-          ?.innerText.toUpperCase()
+        factionName: (
+          row.querySelector("td:nth-child(2) > a") as HTMLElement
+        )?.innerText
+          .toUpperCase()
           .replaceAll("GWENT DECK", "")
           .trim()
           .replaceAll(" ", "_")
@@ -139,19 +140,25 @@ async function scrapeGwentCards() {
       const factionCardsRaw = Array.from(rows)
         .slice(1)
         .flatMap((row) => {
-          const name = row.querySelector("td:nth-child(2) > a")?.innerText;
-          const type = row.querySelector("td:nth-child(3)")?.innerText;
-          const baseStrength = row.querySelector("td:nth-child(5)")?.innerText;
+          const name = (row.querySelector("td:nth-child(2) > a") as HTMLElement)
+            ?.innerText;
+          const type = (row.querySelector("td:nth-child(3)") as HTMLElement)
+            ?.innerText;
+          const baseStrength = (
+            row.querySelector("td:nth-child(5)") as HTMLElement
+          )?.innerText;
 
-          const allowedRows = row.querySelector("td:nth-child(4) > a")?.title;
+          const allowedRows = (
+            row.querySelector("td:nth-child(4) > a") as HTMLElement
+          )?.title;
 
-          const specialAbilities =
-            row.querySelector("td:nth-child(6)")?.innerText;
+          const specialAbilities = (
+            row.querySelector("td:nth-child(6)") as HTMLElement
+          )?.innerText;
 
           const repetitions =
-            row
-              .querySelector("td:nth-child(7)")
-              ?.innerText.split("\n")
+            (row.querySelector("td:nth-child(7)") as HTMLElement)?.innerText
+              .split("\n")
               .reduce((acc: number, curr: string) => {
                 const number = curr.match(/\d/)?.[0];
                 if (number) return acc + Number(number);
@@ -193,8 +200,9 @@ async function scrapeGwentCards() {
             logNavigate(cardLink);
 
             [flavourText, semanticId] = await cardPage.evaluate(() => {
-              const flavourText =
-                document.querySelector(".pi-caption")?.innerText;
+              const flavourText = (
+                document.querySelector(".pi-caption") as HTMLElement
+              )?.innerText;
               const semanticId =
                 document
                   .querySelector(
