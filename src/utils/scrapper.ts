@@ -14,9 +14,9 @@ TODO:
 [x] Bug: the very first card of each faction is empty
 [x] Some cards got the special abilities wrong (specially leaders)
 [x] allowedRows is not working
-[ ] ids are restarting at every faction
-[ ] Cerys has a non-existing special ability
-[ ] some special abilities are uppercase, as if they were only the keys of the type
+[x] ids are restarting at every faction
+[x] some special abilities are uppercase, as if they were only the keys of the type
+[ ] verify abilities with ***
 [ ] improve logging
 */
 
@@ -73,10 +73,14 @@ function extractSpecialAbilities(
           ?.replaceAll(" ", "_")
           ?.replaceAll("'", "") || "";
 
-      if (finalText.includes("HORN")) finalText = SpecialAbility.HORN;
-      if (finalText.includes("SCORCH")) finalText = SpecialAbility.SCORCH;
+      if (finalText.includes("HORN")) finalText = "HORN";
+      if (finalText.includes("SCORCH")) finalText = "SCORCH";
 
-      return finalText as SpecialAbility;
+      return (
+        SpecialAbility[finalText as keyof typeof SpecialAbility] ||
+        `***${finalText}`
+        // if it has ***, it means that it is not present in the type
+      );
     }) || [];
 
   return specialAbilities;
@@ -134,62 +138,69 @@ async function scrapeGwentCards() {
         "calculatedStrength" | "faction" | "id" | "isHiddenCard"
       >,
       string
-    > & { cardLink: string })[] = await factionPage.evaluate(async () => {
-      const rows = document.querySelectorAll(".fandom-table tbody tr");
+    > & { cardLink: string; repetitions: number })[] =
+      await factionPage.evaluate(async () => {
+        const rows = document.querySelectorAll(".fandom-table tbody tr");
 
-      const factionCardsRaw = Array.from(rows)
-        .slice(1)
-        .flatMap((row) => {
-          const name = (row.querySelector("td:nth-child(2) > a") as HTMLElement)
-            ?.innerText;
-          const type = (row.querySelector("td:nth-child(3)") as HTMLElement)
-            ?.innerText;
-          const baseStrength = (
-            row.querySelector("td:nth-child(5)") as HTMLElement
-          )?.innerText;
+        const factionCardsRaw = Array.from(rows)
+          .slice(1)
+          .flatMap((row) => {
+            const name = (
+              row.querySelector("td:nth-child(2) > a") as HTMLElement
+            )?.innerText;
+            const type = (row.querySelector("td:nth-child(3)") as HTMLElement)
+              ?.innerText;
+            const baseStrength = (
+              row.querySelector("td:nth-child(5)") as HTMLElement
+            )?.innerText;
 
-          const allowedRows = (
-            row.querySelector("td:nth-child(4) > a") as HTMLElement
-          )?.title;
+            const allowedRows = (
+              row.querySelector("td:nth-child(4) > a") as HTMLElement
+            )?.title;
 
-          const specialAbilities = (
-            row.querySelector("td:nth-child(6)") as HTMLElement
-          )?.innerText;
+            const specialAbilities = (
+              row.querySelector("td:nth-child(6)") as HTMLElement
+            )?.innerText;
 
-          const repetitions =
-            (row.querySelector("td:nth-child(7)") as HTMLElement)?.innerText
-              .split("\n")
-              .reduce((acc: number, curr: string) => {
-                const number = curr.match(/\d/)?.[0];
-                if (number) return acc + Number(number);
+            const repetitions =
+              (row.querySelector("td:nth-child(7)") as HTMLElement)?.innerText
+                .split("\n")
+                .reduce((acc: number, curr: string) => {
+                  const number = curr.match(/\d/)?.[0];
+                  if (number) return acc + Number(number);
 
-                return acc + 1;
-              }, 0) || 1;
+                  return acc + 1;
+                }, 0) || 1;
 
-          const cardLink =
-            (row.querySelector("td:nth-child(2) > a") as HTMLAnchorElement)
-              ?.href || "";
+            const cardLink =
+              (row.querySelector("td:nth-child(2) > a") as HTMLAnchorElement)
+                ?.href || "";
 
-          return new Array(repetitions).fill(null).map(() => ({
-            name,
-            baseStrength,
-            type,
-            allowedRows,
-            specialAbilities,
-            flavourText: "",
-            semanticId: "",
-            cardLink,
-          }));
-        });
+            return new Array(repetitions).fill(null).map(() => ({
+              name,
+              baseStrength,
+              type,
+              allowedRows,
+              specialAbilities,
+              flavourText: "",
+              semanticId: "",
+              cardLink,
+              repetitions,
+            }));
+          });
 
-      return factionCardsRaw;
-    });
+        return factionCardsRaw;
+      });
 
     await factionPage.close();
 
+    let counter = 0;
+
+    const cardLinkDataCache: Record<string, [string, string]> = {};
+
     const finalFactionCards: Omit<Card, "calculatedStrength">[] =
       await Promise.all(
-        factionCardsRaw.map(async ({ cardLink, ...rawCard }, index) => {
+        factionCardsRaw.map(async ({ cardLink, ...rawCard }) => {
           let flavourText = "";
           let semanticId = "";
           if (cardLink) {
@@ -197,29 +208,38 @@ async function scrapeGwentCards() {
             await cardPage.goto(`${cardLink}`, {
               waitUntil: "domcontentloaded",
             });
-            logNavigate(cardLink);
+            if (rawCard.repetitions > 1 && cardLinkDataCache?.[rawCard.name]) {
+              console.log("USED LINK CACHE");
 
-            [flavourText, semanticId] = await cardPage.evaluate(() => {
-              const flavourText = (
-                document.querySelector(".pi-caption") as HTMLElement
-              )?.innerText;
-              const semanticId =
-                document
-                  .querySelector(
-                    "#mw-content-text > div > aside > section:last-child > section > section > div",
-                  )
-                  ?.innerHTML.split("<br>")[0] || "";
+              [flavourText, semanticId] = cardLinkDataCache[rawCard.name];
+            } else {
+              logNavigate(cardLink);
 
-              return [flavourText, semanticId];
-            });
+              [flavourText, semanticId] = await cardPage.evaluate(() => {
+                const flavourText = (
+                  document.querySelector(".pi-caption") as HTMLElement
+                )?.innerText;
+                const semanticId =
+                  document
+                    .querySelector(
+                      "#mw-content-text > div > aside > section:last-child > section > section > div",
+                    )
+                    ?.innerHTML.split("<br>")[0] || "";
 
-            await cardPage.close();
+                return [flavourText, semanticId];
+              });
+
+              if (rawCard.repetitions > 1)
+                cardLinkDataCache[rawCard.name] = [flavourText, semanticId];
+
+              await cardPage.close();
+            }
           }
 
           console.log(`☑️ Extracted card '${rawCard.name}' ('${semanticId}')`);
 
           return {
-            id: index,
+            id: counter++,
             name: rawCard.name,
             baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
             faction: Faction[factionName.toUpperCase() as keyof typeof Faction],

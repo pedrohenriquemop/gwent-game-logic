@@ -51,11 +51,12 @@ export enum SpecialAbility {
   DECOY = "decoy",
   SCORCH = "scorch",
   HORN = "horn",
-  MARDROEM = "mardroem",
+  MARDROEME = "mardroeme",
   BERSERK = "berserk",
   SUMMON_AVENGER = "summon_avenger",
   WEATHER = "weather",
   CLEAR_WEATHER = "clear_weather",
+  HERO = "hero",
 }
 
 export enum WeatherEffect {
@@ -66,5 +67,5 @@ export enum WeatherEffect {
 
 export enum UniqueRowEffect {
   HORN = "horn",
-  MARDROEM = "mardroem",
+  MARDROEME = "mardroeme",
 }
