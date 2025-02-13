@@ -39,6 +39,14 @@ function extractAllowedRows(rowTitle: string): string[] {
   return allowedRows;
 }
 
+const weatherCardsNames = [
+  "Skellige Storm",
+  "Biting Frost",
+  "Clear Weather",
+  "Impenetrable Fog",
+  "Torrential Rain",
+].map((name) => name.toLowerCase());
+
 function extractSpecialAbilities(
   specialAbilitiesText: string,
   cardName: string,
@@ -46,7 +54,7 @@ function extractSpecialAbilities(
 ): string[] {
   if (!specialAbilitiesText) return [];
   if (cardType === CardType.LEADER) return [];
-  if (cardType === CardType.WEATHER) {
+  if (weatherCardsNames.includes(cardName.toLowerCase())) {
     if (cardName.toLowerCase() === "clear weather")
       return ["SpecialAbility.CLEAR_WEATHER"];
     return ["SpecialAbility.WEATHER"];
@@ -205,65 +213,82 @@ async function scrapeGwentCards() {
 
     const finalFactionCards: Omit<Card, "calculatedStrength">[] =
       await Promise.all(
-        factionCardsRaw.map(async ({ cardLink, ...rawCard }) => {
-          let flavourText = "";
-          let semanticId = "";
-          if (cardLink) {
-            const cardPage = await browser.newPage();
-            await cardPage.goto(`${cardLink}`, {
-              waitUntil: "domcontentloaded",
-            });
-            if (rawCard.repetitions > 1 && cardLinkDataCache?.[rawCard.name]) {
-              console.log("USED LINK CACHE");
-
-              [flavourText, semanticId] = cardLinkDataCache[rawCard.name];
-            } else {
-              logNavigate(cardLink);
-
-              [flavourText, semanticId] = await cardPage.evaluate(() => {
-                const flavourText = (
-                  document.querySelector(".pi-caption") as HTMLElement
-                )?.innerText;
-                const semanticId =
-                  document
-                    .querySelector(
-                      "#mw-content-text > div > aside > section:last-child > section > section > div",
-                    )
-                    ?.innerHTML.split("<br>")[0] || "";
-
-                return [flavourText, semanticId];
+        factionCardsRaw
+          // this filter avoids Skellige Storm duplicates in neutral and skellige deck cards (it is a neutral card)
+          .filter(
+            (rawCard) =>
+              rawCard.name.toLowerCase() !== "skellige storm" ||
+              factionName.toUpperCase() !== "SKELLIGE",
+          )
+          .map(async ({ cardLink, ...rawCard }) => {
+            let flavourText = "";
+            let semanticId = "";
+            if (cardLink) {
+              const cardPage = await browser.newPage();
+              await cardPage.goto(`${cardLink}`, {
+                waitUntil: "domcontentloaded",
               });
+              if (
+                rawCard.repetitions > 1 &&
+                cardLinkDataCache?.[rawCard.name]
+              ) {
+                console.log("USED LINK CACHE");
 
-              if (rawCard.repetitions > 1)
-                cardLinkDataCache[rawCard.name] = [flavourText, semanticId];
+                [flavourText, semanticId] = cardLinkDataCache[rawCard.name];
+              } else {
+                logNavigate(cardLink);
 
-              await cardPage.close();
+                [flavourText, semanticId] = await cardPage.evaluate(() => {
+                  const flavourText = (
+                    document.querySelector(".pi-caption") as HTMLElement
+                  )?.innerText;
+                  const semanticId =
+                    document
+                      .querySelector(
+                        "#mw-content-text > div > aside > section:last-child > section > section > div",
+                      )
+                      ?.innerHTML.split("<br>")[0] || "";
+
+                  return [flavourText, semanticId];
+                });
+
+                if (rawCard.repetitions > 1)
+                  cardLinkDataCache[rawCard.name] = [flavourText, semanticId];
+
+                await cardPage.close();
+              }
             }
-          }
 
-          console.log(`☑️ Extracted card '${rawCard.name}' ('${semanticId}')`);
+            console.log(
+              `☑️ Extracted card '${rawCard.name}' ('${semanticId}')`,
+            );
 
-          return {
-            id: -1,
-            name: rawCard.name,
-            baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
-            faction: `Faction.${factionName.toUpperCase()}`,
-            type: `CardType.${rawCard.type.toUpperCase()}`,
-            allowedRows: extractAllowedRows(rawCard.allowedRows),
-            specialAbilities: extractSpecialAbilities(
-              rawCard.specialAbilities,
-              rawCard.name,
-              CardType[rawCard.type.toUpperCase() as keyof typeof CardType],
-            ),
-            flavourText: flavourText,
-            semanticId: semanticId,
-            ...(!semanticId
-              ? {
-                  isHiddenCard: true,
-                }
-              : {}),
-          };
-        }),
+            let cardType = rawCard.type.toUpperCase();
+
+            if (cardType === "HERO") cardType = "UNIT";
+            if (cardType === "WEATHER") cardType = "SPECIAL";
+
+            return {
+              id: -1,
+              name: rawCard.name,
+              baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
+              faction: `Faction.${factionName.toUpperCase()}`,
+              type: `CardType.${cardType}`,
+              allowedRows: extractAllowedRows(rawCard.allowedRows),
+              specialAbilities: extractSpecialAbilities(
+                rawCard.specialAbilities,
+                rawCard.name,
+                CardType[cardType as keyof typeof CardType],
+              ),
+              flavourText: flavourText,
+              semanticId: semanticId,
+              ...(!semanticId
+                ? {
+                    isHiddenCard: true,
+                  }
+                : {}),
+            };
+          }),
       );
 
     finalCards.push(...finalFactionCards);

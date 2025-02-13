@@ -2,8 +2,7 @@ import {
   MAXIMUM_NUMBER_OF_SPECIAL_CARDS_IN_DECK,
   MINIMUM_NUMBER_OF_UNIT_CARDS_IN_DECK,
 } from "../../utils/constants";
-import { CardType, Faction } from "../../utils/types";
-import Card from "../card";
+import { Card, CardType, Faction, SpecialAbility } from "../../utils/types";
 
 export default class Deck {
   readonly cards: Card[];
@@ -29,15 +28,17 @@ export default class Deck {
   }
 
   getnumberOfHeroCards(): number {
-    return this.getNumberOfCardsByType(CardType.HERO);
-  }
-
-  getTotalCardStrength(): number {
-    return this.cards.reduce((acc, card) => acc + card.baseStrength, 0);
+    return this.cards.filter((card) =>
+      card.specialAbilities?.includes(SpecialAbility.HERO),
+    ).length;
   }
 
   getNumberOfCardsByType(type: CardType): number {
     return this.cards.filter((card) => card.type === type).length;
+  }
+
+  getTotalCardStrength(): number {
+    return this.cards.reduce((acc, card) => acc + card.baseStrength, 0);
   }
 
   private validateLeader(): void {

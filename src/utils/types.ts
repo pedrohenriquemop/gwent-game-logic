@@ -21,9 +21,7 @@ export enum Faction {
 
 export enum CardType {
   UNIT = "unit",
-  SPECIAL = "special", // decoy, horn, scorch, etc.
-  HERO = "hero",
-  WEATHER = "weather",
+  SPECIAL = "special", // decoy, horn, scorch, weather, etc.
   LEADER = "leader",
 }
 
