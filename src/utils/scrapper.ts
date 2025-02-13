@@ -1,23 +1,18 @@
 import { writeFileSync } from "fs";
 import { launch } from "puppeteer";
-import { BoardRowType, Card, CardType, Faction, SpecialAbility } from "./types";
+import { Card, CardType } from "./types";
 
 const BASE_URL = "https://witcher.fandom.com";
 const GENERAL_URL = `${BASE_URL}/wiki/Gwent`;
 
 /*
-TODO:
-[x] Extract semanticId and flavourText
-[x] Add isHiddenCard property for cards that only appears when other cards dies
-[x] Add multiple cards with the same name
-[x] Bug: some cards are not coming with semanticId
-[x] Bug: the very first card of each faction is empty
-[x] Some cards got the special abilities wrong (specially leaders)
-[x] allowedRows is not working
-[x] ids are restarting at every faction
-[x] some special abilities are uppercase, as if they were only the keys of the type
-[ ] verify abilities with ***
-[ ] improve logging
+Helper REGEX to clean the result file:
+Find: "([type_goes_here]\.\w+)"
+Replace: $1
+
+Example:
+Find: "(CardType\.\w+)"
+Replace: $1
 */
 
 function msToS(ms: number) {
@@ -28,18 +23,18 @@ function logNavigate(url: string) {
   console.log(`🌐 Navigating to "${url}"`);
 }
 
-function extractAllowedRows(rowTitle: string): BoardRowType[] {
+function extractAllowedRows(rowTitle: string): string[] {
   if (!rowTitle) return [];
 
   rowTitle = rowTitle.toLowerCase();
 
-  const allowedRows: BoardRowType[] = [];
+  const allowedRows: string[] = [];
 
   if (rowTitle.includes("agile"))
-    allowedRows.push(BoardRowType.MELEE, BoardRowType.RANGED);
-  if (rowTitle.includes("close")) allowedRows.push(BoardRowType.MELEE);
-  if (rowTitle.includes("ranged")) allowedRows.push(BoardRowType.RANGED);
-  if (rowTitle.includes("siege")) allowedRows.push(BoardRowType.SIEGE);
+    allowedRows.push("BoardRowType.MELEE", "BoardRowType.RANGED");
+  if (rowTitle.includes("close")) allowedRows.push("BoardRowType.MELEE");
+  if (rowTitle.includes("ranged")) allowedRows.push("BoardRowType.RANGED");
+  if (rowTitle.includes("siege")) allowedRows.push("BoardRowType.SIEGE");
 
   return allowedRows;
 }
@@ -48,22 +43,33 @@ function extractSpecialAbilities(
   specialAbilitiesText: string,
   cardName: string,
   cardType: CardType,
-): (SpecialAbility | string)[] {
+): string[] {
   if (!specialAbilitiesText) return [];
   if (cardType === CardType.LEADER) return [];
   if (cardType === CardType.WEATHER) {
     if (cardName.toLowerCase() === "clear weather")
-      return [SpecialAbility.CLEAR_WEATHER];
-    return [SpecialAbility.WEATHER];
+      return ["SpecialAbility.CLEAR_WEATHER"];
+    return ["SpecialAbility.WEATHER"];
   }
   if (cardName.toLowerCase() === "commander's horn")
-    return [SpecialAbility.HORN];
-  if (cardName.toLowerCase() === "decoy") return [SpecialAbility.DECOY];
+    return ["SpecialAbility.HORN"];
+  if (cardName.toLowerCase() === "decoy") return ["SpecialAbility.DECOY"];
+  if (cardName.toLowerCase() === "mardroeme")
+    return ["SpecialAbility.MARDROEME"];
 
   const specialAbilities =
     specialAbilitiesText?.split("\n")?.map((abilityText) => {
-      if (abilityText.includes("When this card is removed"))
-        return SpecialAbility.SUMMON_AVENGER;
+      if (abilityText.toLowerCase().includes("when this card is removed"))
+        return "SpecialAbility.SUMMON_AVENGER";
+
+      if (
+        abilityText
+          .toLowerCase()
+          .includes(
+            "transforms into a bear when a mardroeme card is on its row",
+          )
+      )
+        return "SpecialAbility.BERSERK";
 
       let finalText =
         abilityText
@@ -75,12 +81,9 @@ function extractSpecialAbilities(
 
       if (finalText.includes("HORN")) finalText = "HORN";
       if (finalText.includes("SCORCH")) finalText = "SCORCH";
+      if (finalText.includes("SUMMON_SHIELD_MAIDENS")) finalText = "MUSTER";
 
-      return (
-        SpecialAbility[finalText as keyof typeof SpecialAbility] ||
-        `***${finalText}`
-        // if it has ***, it means that it is not present in the type
-      );
+      return `SpecialAbility.${finalText}`;
     }) || [];
 
   return specialAbilities;
@@ -123,7 +126,11 @@ async function scrapeGwentCards() {
     factionLinks,
   );
 
-  const finalCards: Omit<Card, "calculatedStrength">[] = [];
+  type MutableCard = {
+    -readonly [K in keyof Card]: Card[K];
+  };
+
+  const finalCards: Omit<MutableCard, "calculatedStrength">[] = [];
 
   for (const { factionLink, factionName } of factionLinks) {
     const factionPage = await browser.newPage();
@@ -194,8 +201,6 @@ async function scrapeGwentCards() {
 
     await factionPage.close();
 
-    let counter = 0;
-
     const cardLinkDataCache: Record<string, [string, string]> = {};
 
     const finalFactionCards: Omit<Card, "calculatedStrength">[] =
@@ -239,11 +244,11 @@ async function scrapeGwentCards() {
           console.log(`☑️ Extracted card '${rawCard.name}' ('${semanticId}')`);
 
           return {
-            id: counter++,
+            id: -1,
             name: rawCard.name,
             baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
-            faction: Faction[factionName.toUpperCase() as keyof typeof Faction],
-            type: CardType[rawCard.type.toUpperCase() as keyof typeof CardType],
+            faction: `Faction.${factionName.toUpperCase()}`,
+            type: `CardType.${rawCard.type.toUpperCase()}`,
             allowedRows: extractAllowedRows(rawCard.allowedRows),
             specialAbilities: extractSpecialAbilities(
               rawCard.specialAbilities,
@@ -267,6 +272,10 @@ async function scrapeGwentCards() {
   }
 
   await browser.close();
+
+  for (let i = 0; i < finalCards.length; i++) {
+    finalCards[i].id = i;
+  }
 
   const output = `export const Cards: Omit<Card, "calculatedStrength">[] = ${JSON.stringify(finalCards, null, 2)};`;
   const filename = "GENERATED_cards.ts";
