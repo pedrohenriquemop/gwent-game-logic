@@ -1,3 +1,4 @@
+import { CardsReference } from "../../utils/cards_reference";
 import {
   BoardRowType,
   Card,
@@ -9,7 +10,7 @@ import {
 type BoardRow = {
   cards: Card[];
   totalStrength: number;
-  weatherEffect: WeatherEffect | null;
+  hasWeatherEffect: boolean;
   uniqueEffect: UniqueRowEffect | null;
   cardEffects: SpecialAbility[] | null;
 };
@@ -27,21 +28,21 @@ export default class Board {
         [BoardRowType.MELEE]: {
           cards: [],
           totalStrength: 0,
-          weatherEffect: null,
+          hasWeatherEffect: false,
           uniqueEffect: null,
           cardEffects: null,
         },
         [BoardRowType.RANGED]: {
           cards: [],
           totalStrength: 0,
-          weatherEffect: null,
+          hasWeatherEffect: false,
           uniqueEffect: null,
           cardEffects: null,
         },
         [BoardRowType.SIEGE]: {
           cards: [],
           totalStrength: 0,
-          weatherEffect: null,
+          hasWeatherEffect: false,
           uniqueEffect: null,
           cardEffects: null,
         },
@@ -50,21 +51,21 @@ export default class Board {
         [BoardRowType.MELEE]: {
           cards: [],
           totalStrength: 0,
-          weatherEffect: null,
+          hasWeatherEffect: false,
           uniqueEffect: null,
           cardEffects: null,
         },
         [BoardRowType.RANGED]: {
           cards: [],
           totalStrength: 0,
-          weatherEffect: null,
+          hasWeatherEffect: false,
           uniqueEffect: null,
           cardEffects: null,
         },
         [BoardRowType.SIEGE]: {
           cards: [],
           totalStrength: 0,
-          weatherEffect: null,
+          hasWeatherEffect: false,
           uniqueEffect: null,
           cardEffects: null,
         },
@@ -72,33 +73,103 @@ export default class Board {
     ];
   }
 
-  setWeatherEffect(effect: WeatherEffect, side: number, row: BoardRowType) {
-    this.sides[side][row].weatherEffect = effect;
+  setWeatherEffect(effect: WeatherEffect) {
+    switch (effect) {
+      case WeatherEffect.FROST:
+        this.sides.forEach((side, sideIndex) => {
+          side[BoardRowType.MELEE].hasWeatherEffect = true;
+
+          this.updateRowCardsStrength(sideIndex, BoardRowType.MELEE);
+        });
+        break;
+      case WeatherEffect.FOG:
+        this.sides.forEach((side, sideIndex) => {
+          side[BoardRowType.RANGED].hasWeatherEffect = true;
+
+          this.updateRowCardsStrength(sideIndex, BoardRowType.RANGED);
+        });
+        break;
+      case WeatherEffect.RAIN:
+        this.sides.forEach((side, sideIndex) => {
+          side[BoardRowType.SIEGE].hasWeatherEffect = true;
+
+          this.updateRowCardsStrength(sideIndex, BoardRowType.SIEGE);
+        });
+        break;
+      case WeatherEffect.CLEAR:
+        this.sides.forEach((side, sideIndex) => {
+          Object.keys(side).forEach((rowType) => {
+            const row = side[rowType as BoardRowType];
+            row.hasWeatherEffect = false;
+
+            this.updateRowCardsStrength(sideIndex, rowType as BoardRowType);
+          });
+        });
+        break;
+    }
   }
 
-  setUniqueEffect(effect: UniqueRowEffect, side: number, row: BoardRowType) {
+  setUniqueEffect(
+    effect: UniqueRowEffect | null,
+    side: number,
+    row: BoardRowType,
+  ) {
+    if (!effect) {
+      this.removeUniqueEffect(side, row);
+      return;
+    }
+
     this.sides[side][row].uniqueEffect = effect;
+
+    this.updateRowCardsStrength(side, row);
   }
 
-  addCard(card: Card, side: number, row: BoardRowType) {
+  removeUniqueEffect(side: number, row: BoardRowType) {
+    this.sides[side][row].uniqueEffect = null;
+
+    this.updateRowCardsStrength(side, row);
+  }
+
+  addCards(_cards: (Card | number)[], side: number, row: BoardRowType) {
     const boardRow = this.sides[side][row];
-    boardRow.cards.push(card);
-    boardRow.totalStrength += card.calculatedStrength;
-  }
 
-  calculateRowTotalStrength(side: number, rowType: BoardRowType) {
-    const row = this.sides[side][rowType];
-    let totalStrength = 0;
-    row.cards.forEach((card) => {
-      totalStrength += card.calculatedStrength;
+    _cards.forEach((_card) => {
+      const card =
+        typeof _card === "number"
+          ? {
+              ...CardsReference[_card],
+              calculatedStrength: CardsReference[_card].baseStrength,
+            }
+          : _card;
+
+      boardRow.cards.push(card);
     });
-    return totalStrength;
+
+    this.updateRowCardsStrength(side, row);
   }
 
-  calculateTotalStrength(side: number) {
+  updateRowCardsStrength(side: number, row: BoardRowType) {
+    const boardRow = this.sides[side][row];
+
+    let totalRowStrength = 0;
+
+    boardRow.cards.forEach((card) => {
+      let newStrength = card.baseStrength;
+
+      if (boardRow.hasWeatherEffect) newStrength = 1;
+      if (boardRow.uniqueEffect === UniqueRowEffect.HORN) newStrength *= 2;
+
+      card.calculatedStrength = newStrength;
+      totalRowStrength += newStrength;
+    });
+
+    boardRow.totalStrength = totalRowStrength;
+  }
+
+  calculateTotalSideStrength(side: number) {
     let totalStrength = 0;
     Object.values(BoardRowType).forEach((rowType) => {
-      totalStrength += this.calculateRowTotalStrength(side, rowType);
+      totalStrength += this.sides[side][rowType].totalStrength;
     });
     return totalStrength;
   }

@@ -61,6 +61,7 @@ export enum WeatherEffect {
   FROST = "frost",
   FOG = "fog",
   RAIN = "rain",
+  CLEAR = "clear",
 }
 
 export enum UniqueRowEffect {
