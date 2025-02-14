@@ -1,22 +1,72 @@
+import { CardsReference } from "../../utils/cards_reference";
 import {
   MAXIMUM_NUMBER_OF_SPECIAL_CARDS_IN_DECK,
   MINIMUM_NUMBER_OF_UNIT_CARDS_IN_DECK,
 } from "../../utils/constants";
+import { sampleFromArray, shuffleArray } from "../../utils/helpers";
 import { Card, CardType, Faction, SpecialAbility } from "../../utils/types";
 
 export default class Deck {
-  readonly cards: Card[];
+  private _cards: Card[];
   readonly faction: Faction;
   readonly leader: Card;
 
-  constructor(cards: Card[], faction: Faction, leader: Card) {
-    this.cards = cards;
+  constructor(
+    cards: Card[] | number[],
+    faction: Faction,
+    leader: Card | number,
+  ) {
+    if (typeof cards[0] === "number") {
+      this._cards = (cards as number[]).map((cardId: number) => {
+        const cardReference = CardsReference[cardId];
+        return {
+          ...cardReference,
+          calculatedStrength: cardReference.baseStrength,
+        };
+      });
+    } else {
+      this._cards = cards as Card[];
+    }
     this.faction = faction;
-    this.leader = leader;
+    this.leader =
+      typeof leader === "number"
+        ? {
+            ...CardsReference[leader],
+            calculatedStrength: CardsReference[leader].baseStrength,
+          }
+        : leader;
+
+    this.shuffleDeck();
+  }
+
+  get cards(): Card[] {
+    return this._cards;
+  }
+
+  shuffleDeck(): void {
+    shuffleArray(this._cards);
+  }
+
+  sample(numberOfSamples = 1, removeSampled = false): Card[] {
+    const [sampledElements, sampledIndexes] = sampleFromArray(
+      this._cards,
+      numberOfSamples,
+    );
+
+    if (removeSampled) {
+      this._cards = this._cards.reduce((acc, card, index) => {
+        if (!sampledIndexes.includes(index)) {
+          acc.push(card);
+        }
+        return acc;
+      }, [] as Card[]);
+    }
+
+    return sampledElements;
   }
 
   getTotalNumberOfCards(): number {
-    return this.cards.length;
+    return this._cards.length;
   }
 
   getNumberOfUnitCards(): number {
@@ -28,17 +78,17 @@ export default class Deck {
   }
 
   getnumberOfHeroCards(): number {
-    return this.cards.filter((card) =>
+    return this._cards.filter((card) =>
       card.specialAbilities?.includes(SpecialAbility.HERO),
     ).length;
   }
 
   getNumberOfCardsByType(type: CardType): number {
-    return this.cards.filter((card) => card.type === type).length;
+    return this._cards.filter((card) => card.type === type).length;
   }
 
   getTotalCardStrength(): number {
-    return this.cards.reduce((acc, card) => acc + card.baseStrength, 0);
+    return this._cards.reduce((acc, card) => acc + card.baseStrength, 0);
   }
 
   private validateLeader(): void {
@@ -66,19 +116,47 @@ export default class Deck {
   }
 
   private validateDeckFaction(): void {
-    this.cards.forEach((card) => {
+    this._cards.forEach((card) => {
       if (card.faction !== Faction.NEUTRAL && card.faction !== this.faction) {
         throw new Error(`Invalid faction for card ${card.name}`);
       }
     });
   }
 
-  validateDeck(): Error | null {
+  private validateDeckCardTypes(): void {
+    this._cards.forEach((card) => {
+      if (card.type === CardType.LEADER) {
+        throw new Error("Leader card cannot be in the deck");
+      }
+    });
+  }
+
+  private validateNoDuplicateCards(): void {
+    const cardIds = this._cards.map((card) => card.id);
+    const uniqueCardIds = new Set(cardIds);
+
+    if (cardIds.length !== uniqueCardIds.size) {
+      throw new Error("Deck cannot contain duplicate cards");
+    }
+  }
+
+  private validateNoHiddenCards(): void {
+    this._cards.forEach((card) => {
+      if (card.isHiddenCard) {
+        throw new Error("Deck cannot contain hidden cards");
+      }
+    });
+  }
+
+  validate(): Error | true {
     try {
       this.validateLeader();
       this.validateDeckSize();
+      this.validateNoHiddenCards();
+      this.validateDeckCardTypes();
       this.validateDeckFaction();
-      return null;
+      this.validateNoDuplicateCards();
+      return true;
     } catch (error: unknown) {
       return error instanceof Error ? error : new Error(String(error));
     }

@@ -1,6 +1,6 @@
 import { BoardRowType, Card, CardType, Faction, SpecialAbility } from "./types";
 
-export const Cards: Omit<Card, "calculatedStrength">[] = [
+export const CardsReference: Omit<Card, "calculatedStrength">[] = [
   {
     id: 0,
     name: "Arachas",
