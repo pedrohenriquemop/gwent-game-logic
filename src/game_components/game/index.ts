@@ -1,4 +1,4 @@
-import { Card } from "../../utils/types";
+import { CardInterface } from "../../utils/types";
 import Player from "../player";
 
 type PlayerInfo = {
@@ -7,9 +7,9 @@ type PlayerInfo = {
   lifes: number;
   hasPassed: boolean;
   isLeaderPowerAvailable: boolean;
-  cardsInDeck: Card[];
-  cardsInHand: Card[];
-  cardsInGraveyard: Card[];
+  cardsInDeck: CardInterface[];
+  cardsInHand: CardInterface[];
+  cardsInGraveyard: CardInterface[];
 };
 
 export default class Game {

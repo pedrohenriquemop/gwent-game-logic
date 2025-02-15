@@ -1,6 +1,12 @@
-import { BoardRowType, Card, CardType, Faction, SpecialAbility } from "./types";
+import {
+  BoardRowType,
+  CardInterface,
+  CardType,
+  Faction,
+  SpecialAbility,
+} from "./types";
 
-export const CardsReference: Omit<Card, "calculatedStrength">[] = [
+export const CardsReference: CardInterface[] = [
   {
     id: 0,
     name: "Arachas",

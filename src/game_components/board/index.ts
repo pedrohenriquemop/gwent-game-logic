@@ -1,18 +1,17 @@
-import { CardsReference } from "../../utils/cards_reference";
 import {
   BoardRowType,
-  Card,
-  SpecialAbility,
+  RowEffect,
   UniqueRowEffect,
   WeatherEffect,
 } from "../../utils/types";
+import Card from "../card";
 
 type BoardRow = {
   cards: Card[];
   totalStrength: number;
   hasWeatherEffect: boolean;
   uniqueEffect: UniqueRowEffect | null;
-  cardEffects: SpecialAbility[] | null;
+  rowEffects: RowEffect[] | null;
 };
 
 type BoardSide = {
@@ -30,21 +29,21 @@ export default class Board {
           totalStrength: 0,
           hasWeatherEffect: false,
           uniqueEffect: null,
-          cardEffects: null,
+          rowEffects: null,
         },
         [BoardRowType.RANGED]: {
           cards: [],
           totalStrength: 0,
           hasWeatherEffect: false,
           uniqueEffect: null,
-          cardEffects: null,
+          rowEffects: null,
         },
         [BoardRowType.SIEGE]: {
           cards: [],
           totalStrength: 0,
           hasWeatherEffect: false,
           uniqueEffect: null,
-          cardEffects: null,
+          rowEffects: null,
         },
       },
       {
@@ -53,21 +52,21 @@ export default class Board {
           totalStrength: 0,
           hasWeatherEffect: false,
           uniqueEffect: null,
-          cardEffects: null,
+          rowEffects: null,
         },
         [BoardRowType.RANGED]: {
           cards: [],
           totalStrength: 0,
           hasWeatherEffect: false,
           uniqueEffect: null,
-          cardEffects: null,
+          rowEffects: null,
         },
         [BoardRowType.SIEGE]: {
           cards: [],
           totalStrength: 0,
           hasWeatherEffect: false,
           uniqueEffect: null,
-          cardEffects: null,
+          rowEffects: null,
         },
       },
     ];
@@ -130,20 +129,11 @@ export default class Board {
     this.updateRowCardsStrength(side, row);
   }
 
-  addCards(_cards: (Card | number)[], side: number, row: BoardRowType) {
+  addCards(cards: Card[], side: number, row: BoardRowType) {
     const boardRow = this.sides[side][row];
 
-    _cards.forEach((_card) => {
-      const card =
-        typeof _card === "number"
-          ? {
-              ...CardsReference[_card],
-              calculatedStrength: CardsReference[_card].baseStrength,
-            }
-          : _card;
-
-      boardRow.cards.push(card);
-    });
+    // TODO: check if card can be played in this row (no duplicates, etc.)
+    boardRow.cards.push(...cards);
 
     this.updateRowCardsStrength(side, row);
   }
@@ -154,12 +144,16 @@ export default class Board {
     let totalRowStrength = 0;
 
     boardRow.cards.forEach((card) => {
-      let newStrength = card.baseStrength;
+      const effects: RowEffect[] = [];
+      if (boardRow.hasWeatherEffect) effects.push(RowEffect.WEATHER);
+      if (boardRow.uniqueEffect) {
+        if (boardRow.uniqueEffect === UniqueRowEffect.HORN)
+          effects.push(RowEffect.HORN);
+        if (boardRow.uniqueEffect === UniqueRowEffect.MARDROEME)
+          effects.push(RowEffect.MARDROEME);
+      }
 
-      if (boardRow.hasWeatherEffect) newStrength = 1;
-      if (boardRow.uniqueEffect === UniqueRowEffect.HORN) newStrength *= 2;
-
-      card.calculatedStrength = newStrength;
+      const newStrength = card.calculateStrength(effects);
       totalRowStrength += newStrength;
     });
 

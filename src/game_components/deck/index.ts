@@ -1,10 +1,15 @@
-import { CardsReference } from "../../utils/cards_reference";
 import {
   MAXIMUM_NUMBER_OF_SPECIAL_CARDS_IN_DECK,
   MINIMUM_NUMBER_OF_UNIT_CARDS_IN_DECK,
 } from "../../utils/constants";
 import { sampleFromArray, shuffleArray } from "../../utils/helpers";
-import { Card, CardType, Faction, SpecialAbility } from "../../utils/types";
+import {
+  CardInterface,
+  CardType,
+  Faction,
+  SpecialAbility,
+} from "../../utils/types";
+import Card from "../card";
 
 export default class Deck {
   private _cards: Card[];
@@ -12,29 +17,15 @@ export default class Deck {
   readonly leader: Card;
 
   constructor(
-    cards: Card[] | number[],
+    cards: CardInterface[] | number[],
     faction: Faction,
-    leader: Card | number,
+    leader: CardInterface | number,
   ) {
-    if (typeof cards[0] === "number") {
-      this._cards = (cards as number[]).map((cardId: number) => {
-        const cardReference = CardsReference[cardId];
-        return {
-          ...cardReference,
-          calculatedStrength: cardReference.baseStrength,
-        };
-      });
-    } else {
-      this._cards = cards as Card[];
-    }
+    this._cards = cards.map((card) => {
+      return new Card(card);
+    });
     this.faction = faction;
-    this.leader =
-      typeof leader === "number"
-        ? {
-            ...CardsReference[leader],
-            calculatedStrength: CardsReference[leader].baseStrength,
-          }
-        : leader;
+    this.leader = new Card(leader);
 
     this.shuffleDeck();
   }
@@ -47,7 +38,7 @@ export default class Deck {
     shuffleArray(this._cards);
   }
 
-  sample(numberOfSamples = 1, removeSampled = false): Card[] {
+  sample(numberOfSamples = 1, removeSampled = false): CardInterface[] {
     const [sampledElements, sampledIndexes] = sampleFromArray(
       this._cards,
       numberOfSamples,

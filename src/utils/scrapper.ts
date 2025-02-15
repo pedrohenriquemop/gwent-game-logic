@@ -1,6 +1,6 @@
 import { writeFileSync } from "fs";
 import { launch } from "puppeteer";
-import { Card, CardType } from "./types";
+import { CardInterface, CardType } from "./types";
 
 const BASE_URL = "https://witcher.fandom.com";
 const GENERAL_URL = `${BASE_URL}/wiki/Gwent`;
@@ -135,10 +135,10 @@ async function scrapeGwentCards() {
   );
 
   type MutableCard = {
-    -readonly [K in keyof Card]: Card[K];
+    -readonly [K in keyof CardInterface]: CardInterface[K];
   };
 
-  const finalCards: Omit<MutableCard, "calculatedStrength">[] = [];
+  const finalCards: MutableCard[] = [];
 
   for (const { factionLink, factionName } of factionLinks) {
     const factionPage = await browser.newPage();
@@ -148,10 +148,7 @@ async function scrapeGwentCards() {
     logNavigate(factionLink);
 
     const factionCardsRaw: (Record<
-      keyof Omit<
-        Card,
-        "calculatedStrength" | "faction" | "id" | "isHiddenCard"
-      >,
+      keyof Omit<CardInterface, "faction" | "id" | "isHiddenCard">,
       string
     > & { cardLink: string; repetitions: number })[] =
       await factionPage.evaluate(async () => {
@@ -211,85 +208,79 @@ async function scrapeGwentCards() {
 
     const cardLinkDataCache: Record<string, [string, string]> = {};
 
-    const finalFactionCards: Omit<Card, "calculatedStrength">[] =
-      await Promise.all(
-        factionCardsRaw
-          // this filter avoids Skellige Storm duplicates in neutral and skellige deck cards (it is a neutral card)
-          .filter(
-            (rawCard) =>
-              rawCard.name.toLowerCase() !== "skellige storm" ||
-              factionName.toUpperCase() !== "SKELLIGE",
-          )
-          .map(async ({ cardLink, ...rawCard }) => {
-            let flavourText = "";
-            let semanticId = "";
-            if (cardLink) {
-              const cardPage = await browser.newPage();
-              await cardPage.goto(`${cardLink}`, {
-                waitUntil: "domcontentloaded",
+    const finalFactionCards: CardInterface[] = await Promise.all(
+      factionCardsRaw
+        // this filter avoids Skellige Storm duplicates in neutral and skellige deck cards (it is a neutral card)
+        .filter(
+          (rawCard) =>
+            rawCard.name.toLowerCase() !== "skellige storm" ||
+            factionName.toUpperCase() !== "SKELLIGE",
+        )
+        .map(async ({ cardLink, ...rawCard }) => {
+          let flavourText = "";
+          let semanticId = "";
+          if (cardLink) {
+            const cardPage = await browser.newPage();
+            await cardPage.goto(`${cardLink}`, {
+              waitUntil: "domcontentloaded",
+            });
+            if (rawCard.repetitions > 1 && cardLinkDataCache?.[rawCard.name]) {
+              console.log("USED LINK CACHE");
+
+              [flavourText, semanticId] = cardLinkDataCache[rawCard.name];
+            } else {
+              logNavigate(cardLink);
+
+              [flavourText, semanticId] = await cardPage.evaluate(() => {
+                const flavourText = (
+                  document.querySelector(".pi-caption") as HTMLElement
+                )?.innerText;
+                const semanticId =
+                  document
+                    .querySelector(
+                      "#mw-content-text > div > aside > section:last-child > section > section > div",
+                    )
+                    ?.innerHTML.split("<br>")[0] || "";
+
+                return [flavourText, semanticId];
               });
-              if (
-                rawCard.repetitions > 1 &&
-                cardLinkDataCache?.[rawCard.name]
-              ) {
-                console.log("USED LINK CACHE");
 
-                [flavourText, semanticId] = cardLinkDataCache[rawCard.name];
-              } else {
-                logNavigate(cardLink);
+              if (rawCard.repetitions > 1)
+                cardLinkDataCache[rawCard.name] = [flavourText, semanticId];
 
-                [flavourText, semanticId] = await cardPage.evaluate(() => {
-                  const flavourText = (
-                    document.querySelector(".pi-caption") as HTMLElement
-                  )?.innerText;
-                  const semanticId =
-                    document
-                      .querySelector(
-                        "#mw-content-text > div > aside > section:last-child > section > section > div",
-                      )
-                      ?.innerHTML.split("<br>")[0] || "";
-
-                  return [flavourText, semanticId];
-                });
-
-                if (rawCard.repetitions > 1)
-                  cardLinkDataCache[rawCard.name] = [flavourText, semanticId];
-
-                await cardPage.close();
-              }
+              await cardPage.close();
             }
+          }
 
-            console.log(
-              `☑️ Extracted card '${rawCard.name}' ('${semanticId}')`,
-            );
+          console.log(`☑️ Extracted card '${rawCard.name}' ('${semanticId}')`);
 
-            let cardType = rawCard.type.toUpperCase();
+          let cardType = rawCard.type.toUpperCase();
 
-            if (cardType === "HERO") cardType = "UNIT";
-            if (cardType === "WEATHER") cardType = "SPECIAL";
+          if (cardType === "HERO") cardType = "UNIT";
+          if (cardType === "WEATHER") cardType = "SPECIAL";
 
-            return {
-              id: -1,
-              name: rawCard.name,
-              baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
-              faction: `Faction.${factionName.toUpperCase()}`,
-              type: `CardType.${cardType}`,
-              allowedRows: extractAllowedRows(rawCard.allowedRows),
-              specialAbilities: extractSpecialAbilities(
-                rawCard.specialAbilities,
-                rawCard.name,
-                CardType[cardType as keyof typeof CardType],
-              ),
-              flavourText: flavourText,
-              semanticId: semanticId,
-              ...(!semanticId
-                ? {
-                    isHiddenCard: true,
-                  }
-                : {}),
-            };
-          }),
-      );
+          return {
+            id: -1,
+            name: rawCard.name,
+            baseStrength: parseInt(rawCard.baseStrength, 10) || 0,
+            faction: `Faction.${factionName.toUpperCase()}`,
+            type: `CardType.${cardType}`,
+            allowedRows: extractAllowedRows(rawCard.allowedRows),
+            specialAbilities: extractSpecialAbilities(
+              rawCard.specialAbilities,
+              rawCard.name,
+              CardType[cardType as keyof typeof CardType],
+            ),
+            flavourText: flavourText,
+            semanticId: semanticId,
+            ...(!semanticId
+              ? {
+                  isHiddenCard: true,
+                }
+              : {}),
+          };
+        }),
+    );
 
     finalCards.push(...finalFactionCards);
 
@@ -302,7 +293,7 @@ async function scrapeGwentCards() {
     finalCards[i].id = i;
   }
 
-  const output = `export const Cards: Omit<Card, "calculatedStrength">[] = ${JSON.stringify(finalCards, null, 2)};`;
+  const output = `export const Cards: CardInterface[] = ${JSON.stringify(finalCards, null, 2)};`;
   const filename = "GENERATED_cards.ts";
   writeFileSync(filename, output, "utf8");
 

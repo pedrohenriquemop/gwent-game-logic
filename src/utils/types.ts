@@ -25,13 +25,12 @@ export enum CardType {
   LEADER = "leader",
 }
 
-export interface Card {
+export interface CardInterface {
   readonly id: number;
   readonly semanticId: string;
   readonly name: string;
   readonly flavourText: string;
   readonly baseStrength: number;
-  calculatedStrength: number;
   readonly faction: Faction;
   readonly type: CardType;
   readonly allowedRows: BoardRowType[];
@@ -62,6 +61,14 @@ export enum WeatherEffect {
   FOG = "fog",
   RAIN = "rain",
   CLEAR = "clear",
+}
+
+export enum RowEffect {
+  HORN = "horn",
+  MARDROEME = "mardroeme",
+  TIGHT_BOND = "tight_bond",
+  WEATHER = "weather",
+  MORALE_BOOST = "morale_boost",
 }
 
 export enum UniqueRowEffect {

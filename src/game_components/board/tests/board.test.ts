@@ -4,11 +4,16 @@ import {
   UniqueRowEffect,
   WeatherEffect,
 } from "../../../utils/types";
+import Card from "../../card";
 
 describe("Board validations", () => {
   test("Add card and calculate correct strength", () => {
     const board = new Board();
-    board.addCards([1, 2, 3, 4, 5], 0, BoardRowType.MELEE);
+    board.addCards(
+      [new Card(1), new Card(2), new Card(3), new Card(4), new Card(5)],
+      0,
+      BoardRowType.MELEE,
+    );
 
     expect(board.sides[0][BoardRowType.MELEE].totalStrength).toBe(20);
 
