@@ -6,6 +6,12 @@ import {
   SpecialAbility,
 } from "./types";
 
+/**
+ * TODO's:
+ * [ ] Adjust allowed rows for some cards (decoy for example is empty, frost is also empty)
+ * [ ] Add some effects extra info? (like which cards MUSTER should bring, card that it will be transformed into, etc)
+ */
+
 export const CardsReference: CardInterface[] = [
   {
     id: 0,

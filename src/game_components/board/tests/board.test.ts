@@ -10,7 +10,7 @@ describe("Board validations", () => {
   test("Add card and calculate correct strength", () => {
     const board = new Board();
     board.addCards(
-      [new Card(1), new Card(2), new Card(3), new Card(4), new Card(5)],
+      [new Card(1), new Card(2), new Card(4), new Card(5), new Card(7)],
       0,
       BoardRowType.MELEE,
     );
@@ -32,5 +32,16 @@ describe("Board validations", () => {
     board.setWeatherEffect(WeatherEffect.CLEAR);
 
     expect(board.sides[0][BoardRowType.MELEE].totalStrength).toBe(20);
+  });
+  test("Trying to add card which is not allowed in the row", () => {
+    const board = new Board();
+
+    expect(() => {
+      board.addCards(
+        [new Card(1), new Card(2), new Card(3), new Card(4), new Card(5)],
+        0,
+        BoardRowType.MELEE,
+      );
+    }).toThrow();
   });
 });

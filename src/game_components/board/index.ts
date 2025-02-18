@@ -129,10 +129,19 @@ export default class Board {
     this.updateRowCardsStrength(side, row);
   }
 
+  private checkIfCardsCanBePlayedInRow(cards: Card[], row: BoardRowType): void {
+    cards.forEach((card) => {
+      if (card.allowedRows.length && !card.allowedRows.includes(row)) {
+        throw new Error("Card cannot be played in this row");
+      }
+    });
+  }
+
   addCards(cards: Card[], side: number, row: BoardRowType) {
+    this.checkIfCardsCanBePlayedInRow(cards, row);
+
     const boardRow = this.sides[side][row];
 
-    // TODO: check if card can be played in this row (no duplicates, etc.)
     boardRow.cards.push(...cards);
 
     this.updateRowCardsStrength(side, row);
