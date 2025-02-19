@@ -1,21 +1,10 @@
-import { CardInterface } from "../../utils/types";
 import Player from "../player";
-
-type PlayerInfo = {
-  player: Player;
-  totalStrength: number;
-  lifes: number;
-  hasPassed: boolean;
-  isLeaderPowerAvailable: boolean;
-  cardsInDeck: CardInterface[];
-  cardsInHand: CardInterface[];
-  cardsInGraveyard: CardInterface[];
-};
+import Spectator from "../spectator";
 
 export default class Game {
-  private playerInfos: [PlayerInfo, PlayerInfo];
-  private currentPlayer: PlayerInfo;
-  private spectators: Player[];
+  private players: [Player, Player];
+  private currentPlayer: number;
+  private spectators: Spectator[];
   private startTime: Date;
 
   startGame() {

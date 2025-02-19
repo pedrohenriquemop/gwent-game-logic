@@ -35,15 +35,15 @@ describe("Deck methods", () => {
   test("getTotalCardStrength", () => {
     expect(deck.getTotalCardStrength()).toBe(134);
   });
-  test("sampleFromDeck (with removeSampled = true)", () => {
-    const SAMPLE_AMOUNT = 5;
+  test("drawCards", () => {
+    const DRAW_AMOUNT = 5;
 
     const initialNumberOfCards = deck.getTotalNumberOfCards();
-    const sampledElements = deck.sample(SAMPLE_AMOUNT, true);
+    const drawnCards = deck.drawCards(DRAW_AMOUNT);
 
-    expect(sampledElements).toHaveLength(SAMPLE_AMOUNT);
+    expect(drawnCards).toHaveLength(DRAW_AMOUNT);
     expect(deck.getTotalNumberOfCards()).toBe(
-      initialNumberOfCards - SAMPLE_AMOUNT,
+      initialNumberOfCards - DRAW_AMOUNT,
     );
   });
 });

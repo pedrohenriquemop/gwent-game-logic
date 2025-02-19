@@ -38,7 +38,11 @@ export default class Deck {
     shuffleArray(this._cards);
   }
 
-  sample(numberOfSamples = 1, removeSampled = false): CardInterface[] {
+  private sample(numberOfSamples = 1, removeSampled = false): Card[] {
+    if (numberOfSamples > this._cards.length) {
+      throw new Error("Cannot sample more cards than the deck contains");
+    }
+
     const [sampledElements, sampledIndexes] = sampleFromArray(
       this._cards,
       numberOfSamples,
@@ -54,6 +58,10 @@ export default class Deck {
     }
 
     return sampledElements;
+  }
+
+  drawCards(amount = 1): Card[] {
+    return this.sample(amount, true);
   }
 
   getTotalNumberOfCards(): number {
