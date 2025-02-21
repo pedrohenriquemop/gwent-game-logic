@@ -1,9 +1,11 @@
+import { PlayerRole } from "../../utils/types";
 import Card from "../card";
 import Deck from "../deck";
 import User from "../user";
 
 export default class Player {
   private user: User;
+  private role: PlayerRole;
   private deck: Deck;
   private strength: number;
   private lifes: number;
@@ -12,8 +14,14 @@ export default class Player {
   private hand: Card[];
   private graveyard: Card[];
 
-  constructor(user: User, deck: Deck, isLeaderPowerUsable = true) {
+  constructor(
+    user: User,
+    role: PlayerRole,
+    deck: Deck,
+    isLeaderPowerUsable = true,
+  ) {
     this.user = user;
+    this.role = role;
     this.deck = deck;
     this.strength = 0;
     this.lifes = 2;
@@ -21,6 +29,10 @@ export default class Player {
     this.isLeaderPowerAvailable = isLeaderPowerUsable;
     this.hand = [];
     this.graveyard = [];
+  }
+
+  getRole(): PlayerRole {
+    return this.role;
   }
 
   getStrength(): number {

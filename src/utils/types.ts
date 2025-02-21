@@ -1,7 +1,6 @@
 export enum PlayerRole {
   PLAYER_1 = "player1",
   PLAYER_2 = "player2",
-  SPECTATOR = "spectator",
 }
 
 export enum BoardRowType {

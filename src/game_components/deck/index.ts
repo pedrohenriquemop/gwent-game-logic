@@ -16,18 +16,12 @@ export default class Deck {
   readonly faction: Faction;
   readonly leader: Card;
 
-  constructor(
-    cards: CardInterface[] | number[],
-    faction: Faction,
-    leader: CardInterface | number,
-  ) {
-    this._cards = cards.map((card) => {
-      return new Card(card);
-    });
+  constructor(cards: Card[], faction: Faction, leader: CardInterface | number) {
+    this._cards = [];
+    this.putCardsInDeck(cards);
+
     this.faction = faction;
     this.leader = new Card(leader);
-
-    this.shuffleDeck();
   }
 
   get cards(): Card[] {
@@ -62,6 +56,13 @@ export default class Deck {
 
   drawCards(amount = 1): Card[] {
     return this.sample(amount, true);
+  }
+
+  putCardsInDeck(cards: Card[]): void {
+    if (!this._cards) this._cards = [];
+    this._cards.push(...cards);
+
+    this.shuffleDeck();
   }
 
   getTotalNumberOfCards(): number {
