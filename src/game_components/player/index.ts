@@ -59,10 +59,6 @@ export default class Player {
     return --this.lifes;
   }
 
-  // setLifes(lifes: number): void {
-  //   this.lifes = lifes;
-  // }
-
   getHasPassed(): boolean {
     return this.hasPassed;
   }
@@ -106,6 +102,18 @@ export default class Player {
   pickCardsFromDeck(amount = 1): void {
     const cards = this.deck.drawCards(amount);
     this.hand.push(...cards);
+  }
+
+  // TODO: test this function
+  putCardOfHandIntoDeck(card: Card): void {
+    const index = this.hand.findIndex((handCard) => handCard.id === card.id);
+
+    if (index === -1) {
+      throw new Error("Card is not in hand");
+    }
+
+    this.hand.splice(index, 1);
+    this.deck.putCardsInDeck([card]);
   }
 
   playCard(index: number): Card {

@@ -1,3 +1,4 @@
+import { PlayerRole } from "../../utils/types";
 import { PassAction, PlayerAction, SelectCardFromSetAction } from "../action";
 import Player from "../player";
 import Spectator from "../spectator";
@@ -6,12 +7,25 @@ export default class Game {
   private players: [Player, Player];
   private currentPlayer: number; // 0 (player1) or 1 (player2)
   private spectators: Spectator[];
-  private startTime: Date;
-  private status: "waiting" | "processing" | "finished";
+  private startTime: Date | null;
+  private status: "waiting" | "ready" | "finished";
   private currentActionHandler: (action: PlayerAction) => void; // this will be a function that will handle the current action
   private expectedActions: PlayerAction[];
+  private actionsNotifier: (actions: PlayerAction[]) => void; // this customizable function is called when the game waits for actions
 
-  setResolvedAction(action: PlayerAction) {
+  constructor(player1: Player, player2: Player, spectators?: Spectator[]) {
+    this.players = [player1, player2];
+    this.currentPlayer = 0;
+    this.spectators = spectators || [];
+    this.startTime = null;
+    this.status = "ready";
+    this.currentActionHandler = () => {};
+    this.expectedActions = [];
+    this.actionsNotifier = (actions) =>
+      console.log("Waiting for actions:", actions);
+  }
+
+  addResolvedAction(action: PlayerAction) {
     if (!this.expectedActions?.length) {
       throw new Error("No actions expected");
     }
@@ -27,6 +41,10 @@ export default class Game {
     this.removeExpectedAction(action);
 
     this.currentActionHandler(action);
+
+    if (!this.expectedActions.length) {
+      this.status = "ready";
+    }
   }
 
   private removeExpectedAction(action: PlayerAction) {
@@ -43,38 +61,82 @@ export default class Game {
     this.expectedActions.splice(expectedActionIndex, 1);
   }
 
-  private setExpectedActions(
-    actions: PlayerAction[],
-    actionHandler: (action: PlayerAction) => void,
-  ) {
+  private filterExpectedActions(
+    filterFn: (action: PlayerAction) => boolean,
+  ): PlayerAction[] {
+    return this.expectedActions.filter(filterFn);
+  }
+
+  private setExpectedActions(actions: PlayerAction[]) {
     this.expectedActions = actions;
+  }
+
+  private setActionHandler(actionHandler: (action: PlayerAction) => void) {
     this.currentActionHandler = actionHandler;
   }
 
-  startGame(player1: Player, player2: Player, spectators?: Spectator[]) {
-    this.players = [player1, player2];
-    this.currentPlayer = 0;
-    this.spectators = spectators || [];
+  private waitForActions(
+    actions: PlayerAction[],
+    actionHandler: (action: PlayerAction) => void,
+  ) {
+    this.status = "waiting";
+
+    this.setExpectedActions(actions);
+    this.setActionHandler(actionHandler);
+  }
+
+  private determineFirstPlayer(): number {
+    return Math.floor(Math.random() * 2);
+  }
+
+  startGame() {
+    this.currentPlayer = this.determineFirstPlayer();
     this.startTime = new Date();
 
     this.dealFirstHandOfCards();
   }
 
   private dealFirstHandOfCards() {
-    // this should select 10 random cards for each player
+    const expectedActions: PlayerAction[] = [];
+
     this.players.forEach((player) => {
       player.pickCardsFromDeck(10);
-      // this.expectedActions.push(
-      //   new SelectCardFromSetAction(player.getRole(), player.getHand()),
-      //   new SelectCardFromSetAction(player.getRole(), player.getHand()),
-      //   new PassAction(player.getRole()),
-      // );
+      expectedActions.push(
+        new SelectCardFromSetAction(player.getRole(), player.getHand()),
+        new SelectCardFromSetAction(player.getRole(), player.getHand()),
+        new PassAction(player.getRole()),
+      );
     });
-    // then, it should await for both players to select at most 2 cards to mulligan
-    //   for that, it should notify the players that they can mulligan
-    //   the game status will be "waiting" until both players have selected their mulligan cards
-    // then, it should deal the remaining cards to the players
-    console.log("TODO: deal cards");
+
+    this.waitForActions(expectedActions, this.firstHandOfCardsActionHandler);
+  }
+
+  private selectPlayerByRole(role: PlayerRole): Player {
+    const player = this.players.find((player) => player.getRole() === role);
+    if (!player) {
+      throw new Error(`Player with role '${role}' not found`);
+    }
+    return player;
+  }
+
+  private firstHandOfCardsActionHandler(action: PlayerAction) {
+    console.log("TODO: handle action", action);
+
+    if (action instanceof PassAction) {
+      this.setExpectedActions(
+        this.filterExpectedActions(
+          (a) => a.agent === action.agent && a instanceof PassAction,
+        ),
+      );
+    } else if (action instanceof SelectCardFromSetAction) {
+      const player = this.selectPlayerByRole(action.agent);
+
+      const selectedCard = action.getSelectedCard();
+      if (selectedCard) {
+        player.pickCardsFromDeck(1);
+        player.putCardOfHandIntoDeck(selectedCard);
+      }
+    }
   }
 
   startRound() {
