@@ -1,13 +1,13 @@
-import { PlayerRole } from "../../utils/types";
+import { PlayerActionType, PlayerRole } from "../../utils/types";
 import Card from "../card";
 
 export abstract class PlayerAction {
-  readonly name: string;
+  readonly type: PlayerActionType;
   readonly agent: PlayerRole;
   protected resolved: boolean;
 
-  constructor(name: string, agent: PlayerRole) {
-    this.name = name;
+  constructor(name: PlayerActionType, agent: PlayerRole) {
+    this.type = name;
     this.agent = agent;
     this.resolved = false;
   }
@@ -16,7 +16,7 @@ export abstract class PlayerAction {
     return this.resolved;
   }
 
-  abstract resolve(...args: unknown[]): void;
+  abstract resolve(...args: unknown[]): this;
 }
 
 export class SelectCardFromSetAction extends PlayerAction {
@@ -24,7 +24,7 @@ export class SelectCardFromSetAction extends PlayerAction {
   private selectedCard: Card | null;
 
   constructor(agent: PlayerRole, cardSet: Card[]) {
-    super("SELECT_CARD_FROM_SET", agent);
+    super(PlayerActionType.SELECT_CARD_FROM_SET, agent);
     this.cardSet = cardSet;
     this.selectedCard = null;
   }
@@ -37,6 +37,8 @@ export class SelectCardFromSetAction extends PlayerAction {
     this.selectedCard = this.cardSet[selectedCardIndex];
 
     this.resolved = true;
+
+    return this;
   }
 
   getSelectedCard() {
@@ -46,10 +48,12 @@ export class SelectCardFromSetAction extends PlayerAction {
 
 export class PassAction extends PlayerAction {
   constructor(agent: PlayerRole) {
-    super("PASS", agent);
+    super(PlayerActionType.PASS, agent);
   }
 
   resolve() {
     this.resolved = true;
+
+    return this;
   }
 }

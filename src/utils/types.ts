@@ -74,3 +74,14 @@ export enum UniqueRowEffect {
   HORN = "horn",
   MARDROEME = "mardroeme",
 }
+
+export enum GameStatus {
+  WAITING = "waiting",
+  READY = "ready",
+  FINISHED = "finished",
+}
+
+export enum PlayerActionType {
+  PASS = "PASS",
+  SELECT_CARD_FROM_SET = "SELECT_CARD_FROM_SET",
+}

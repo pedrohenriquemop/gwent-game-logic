@@ -1,4 +1,4 @@
-import { PlayerRole } from "../../utils/types";
+import { GameStatus, PlayerRole } from "../../utils/types";
 import { PassAction, PlayerAction, SelectCardFromSetAction } from "../action";
 import Player from "../player";
 import Spectator from "../spectator";
@@ -8,7 +8,7 @@ export default class Game {
   private currentPlayer: number; // 0 (player1) or 1 (player2)
   private spectators: Spectator[];
   private startTime: Date | null;
-  private status: "waiting" | "ready" | "finished";
+  private status: GameStatus;
   private currentActionHandler: (action: PlayerAction) => void; // this will be a function that will handle the current action
   private expectedActions: PlayerAction[];
   private actionsNotifier: (actions: PlayerAction[]) => void; // this customizable function is called when the game waits for actions
@@ -18,11 +18,24 @@ export default class Game {
     this.currentPlayer = 0;
     this.spectators = spectators || [];
     this.startTime = null;
-    this.status = "ready";
+    this.status = GameStatus.READY;
     this.currentActionHandler = () => {};
     this.expectedActions = [];
     this.actionsNotifier = (actions) =>
       console.log("Waiting for actions:", actions);
+  }
+
+  getStatus() {
+    return this.status;
+  }
+
+  getPlayers() {
+    return this.players;
+  }
+
+  // TODO: improve this function to be able to filter the expected actions
+  getExpectedActions() {
+    return this.expectedActions;
   }
 
   addResolvedAction(action: PlayerAction) {
@@ -43,14 +56,14 @@ export default class Game {
     this.currentActionHandler(action);
 
     if (!this.expectedActions.length) {
-      this.status = "ready";
+      this.status = GameStatus.READY;
     }
   }
 
   private removeExpectedAction(action: PlayerAction) {
     const expectedActionIndex = this.expectedActions.findIndex(
       (expectedAction) =>
-        expectedAction.name === action.name &&
+        expectedAction.type === action.type &&
         expectedAction.agent === action.agent,
     );
 
@@ -79,7 +92,7 @@ export default class Game {
     actions: PlayerAction[],
     actionHandler: (action: PlayerAction) => void,
   ) {
-    this.status = "waiting";
+    this.status = GameStatus.WAITING;
 
     this.setExpectedActions(actions);
     this.setActionHandler(actionHandler);
@@ -120,12 +133,10 @@ export default class Game {
   }
 
   private firstHandOfCardsActionHandler(action: PlayerAction) {
-    console.log("TODO: handle action", action);
-
     if (action instanceof PassAction) {
       this.setExpectedActions(
         this.filterExpectedActions(
-          (a) => a.agent === action.agent && a instanceof PassAction,
+          (a) => a.agent !== action.agent || a instanceof PassAction,
         ),
       );
     } else if (action instanceof SelectCardFromSetAction) {
